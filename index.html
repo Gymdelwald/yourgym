@@ -134,7 +134,7 @@ body.in-session .stg:not(.next .stg)>svg{width:100%;height:100%}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .chip{padding:7px 14px;border-radius:99px;border:2px solid var(--line);font-weight:600}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-#days .chip[aria-pressed="true"],#sexc .chip[aria-pressed="true"],#thc .chip[aria-pressed="true"],#avc .chip[aria-pressed="true"]{background:var(--plate);color:var(--on-plate);border-color:var(--plate-t)}
+#days .chip[aria-pressed="true"],#sexc .chip[aria-pressed="true"],#thc .chip[aria-pressed="true"],#goalc .chip[aria-pressed="true"],#avc .chip[aria-pressed="true"]{background:var(--plate);color:var(--on-plate);border-color:var(--plate-t)}
 .ex-row{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:8px 0;border-top:1px solid var(--line)}
 .ex-item{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line)}
 .ex-item .ex-row{border-top:0;flex:1;min-width:0}
@@ -157,7 +157,7 @@ body.in-session .stg:not(.next .stg)>svg{width:100%;height:100%}
 .sides{display:flex;justify-content:center;gap:10px;margin:-2px 0 12px}
 .sides span{padding:5px 12px;border-radius:99px;border:2px solid var(--line);font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
 .sides span.on{border-color:var(--plate-t);color:var(--plate-t)}
-.sides span.ok{color:var(--sage);border-color:var(--sage)}
+.sides span.ok{color:var(--plate-t);border-color:var(--plate-t)}
 .stage .bottle{fill:var(--plate)}
 .stage .sweat{fill:var(--fig)}
 .reststg .stage{max-height:28vh}
@@ -176,7 +176,7 @@ details li{margin:4px 0}
 .fbr::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:var(--plate);border:3px solid var(--ink);cursor:pointer}
 .fbr:disabled{opacity:.35}
 .fbl{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted)}
-.swap{display:block;margin:10px auto 0;color:var(--oxide);font-weight:600;padding:8px}
+.swap{display:block;margin:10px auto 0;color:var(--plate-t);font-weight:600;padding:8px}
 .sheet{position:fixed;inset:0;z-index:20;background:rgba(10,14,22,.5);display:flex;align-items:flex-end;justify-content:center}
 .sheet .in{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 18px calc(24px + env(safe-area-inset-bottom,0px))}
 input[type=date]{font:inherit;padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--surface);color:var(--ink)}
@@ -292,7 +292,13 @@ html[data-theme="light"] .acc i{box-shadow:0 0 0 1px rgba(0,0,0,.08)}
 .acc[aria-pressed="true"] i{border-color:var(--ink)}
 .acc[aria-pressed="true"] span{font-weight:700}
 .verl{margin:14px 0 0;padding-left:2px}
+.tipbox{position:absolute;left:10px;right:10px;top:10px;z-index:2;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--surface) 92%,transparent);border-left:4px solid var(--plate);font-size:.95rem;line-height:1.35}
+.reststg.has-tip>svg{padding-top:84px;box-sizing:border-box}
+.tipbox .tipk{font-weight:700;color:var(--plate-t);font-size:.85rem;text-transform:uppercase;letter-spacing:.04em}
+.tipbox p{margin:4px 0 0;transition:opacity .25s}
 .codebox{width:100%;font:13px/1.4 ui-monospace,Menlo,monospace;padding:10px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);margin:6px 0 10px;resize:vertical;word-break:break-all}
+#goalc .chip[aria-pressed="true"]:not(.prim){background:transparent;color:var(--ink);border-color:var(--plate)}
+.goalchip small{display:block;font-size:.7rem;font-weight:600;opacity:.8;line-height:1;margin-top:2px}
 .pfg{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
 .pfbd{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.95rem;margin-top:14px}
 .pfi input[type=date]{color-scheme:dark;min-height:24px}
@@ -323,6 +329,24 @@ details.eqd .bnrow{grid-template-columns:48px 1fr}
 <script>
 "use strict";
 /* ---------- Figur & Animation ---------- */
+const GOALS={
+  fit:{n:'Allgemeine Fitness',d:'Ausgewogenes Training aus Kraft, Ausdauer, Schnelligkeit, Beweglichkeit und Koordination.',w:{K:1,A:1,S:1,B:1,C:1}},
+  muscle:{n:'Muskelaufbau',d:'Deutlich mehr Krafttraining mit längeren Satzpausen, dafür weniger Intervalle und Dehnen.',w:{K:1.7,A:.6,S:.7,B:.75,C:.7},rest:20},
+  lose:{n:'Abnehmen',d:'Mehr Intervalle mit längeren Belastungs- und kürzeren Pausenzeiten. Kraft mit kurzen Pausen, damit der Puls oben bleibt.',w:{K:1,A:1.75,S:.9,B:.6,C:.6},rest:-10,hiit:{w:5,r:-5}},
+  endur:{n:'Ausdauer',d:'Mehr Intervalle mit langen Belastungsphasen, etwas weniger Kraft.',w:{K:.8,A:1.7,S:1,B:.8,C:.7},hiit:{w:10,r:0}},
+  mobil:{n:'Beweglichkeit',d:'Viel mehr Dehn- und Mobilisationsübungen, mehr Koordination, weniger Intervalle.',w:{K:.8,A:.65,S:.7,B:1.9,C:1.1}},
+  back:{n:'Haltung und Rücken',d:'Ziehende Übungen statt drückender, mehr Rumpf, mehr Dehnen für Hüfte, Brust und Wirbelsäule.',w:{K:1.1,A:.7,S:.6,B:1.4,C:1.1},swap:{pushH:'pullH',pushV:'pullV',abd:'core'},stretch:['d_hip','d_chest','d_catcow','d_child','d_sphinx']}
+};
+function goal(){const ks=((S&&S.goals)||['fit']).filter(k=>GOALS[k]);if(!ks.length)ks.push('fit');const P=GOALS[ks[0]],sec=ks.slice(1).map(k=>GOALS[k]),SW=.35;
+  const w={};for(const a of['K','A','S','B','C'])w[a]=(P.w[a]??1)*sec.reduce((m,g)=>m*Math.pow(g.w[a]??1,SW),1);
+  const hiit={w:(P.hiit?.w||0)+sec.reduce((m,g)=>m+(g.hiit?.w||0)*.3,0),r:(P.hiit?.r||0)+sec.reduce((m,g)=>m+(g.hiit?.r||0)*.3,0)};
+  let swap=P.swap?{...P.swap}:null;for(const g of sec)if(g.swap){const [k,v]=Object.entries(g.swap)[0];swap=swap||{};if(!(k in swap))swap[k]=v}
+  return{w,rest:Math.round((P.rest||0)+sec.reduce((m,g)=>m+(g.rest||0)*.3,0)),hiit,swap,stretch:[...(P.stretch||[]),...sec.flatMap(g=>g.stretch||[])],d:P.d,keys:ks}}
+function goalChips(){const ks=S.goals||['fit'];return Object.entries(GOALS).map(([k,g])=>{const i=ks.indexOf(k);return `<button class="chip goalchip${i===0?' prim':''}" data-g="${k}" aria-pressed="${i>=0}">${g.n}${i===0?'<small>Hauptziel</small>':i>0?'<small>Nebenziel</small>':''}</button>`}).join('')}
+function goalText(){const ks=S.goals||['fit'],sec=ks.slice(1).map(k=>GOALS[k].n);return `<b>Hauptziel: ${esc(GOALS[ks[0]].n)}.</b> ${esc(GOALS[ks[0]].d)}${sec.length?` <br><b>Nebenziel${sec.length>1?'e':''}:</b> ${esc(sec.join(' und '))}. Sie fließen schwächer in die Planung ein.`:' Du kannst bis zu zwei Nebenziele dazunehmen.'}`}
+function bindGoals(root){root.querySelectorAll('#goalc .chip').forEach(b=>b.onclick=()=>{const k=b.dataset.g;let ks=(S.goals||['fit']).slice();
+  if(ks.includes(k)){if(ks.length>1)ks=ks.filter(x=>x!==k)}else if(ks.length<3)ks.push(k);else{b.animate&&b.animate([{transform:'translateX(-4px)'},{transform:'translateX(4px)'},{transform:'none'}],{duration:220});return}
+  S.goals=ks;save();const c=document.getElementById('goalc');c.innerHTML=goalChips();document.getElementById('goalt').innerHTML=goalText();bindGoals(document)})}
 const ACCENTS=[['Gelb','#F0B323'],['Orange','#FF8A00'],['Rot','#FF5A4F'],['Pink','#FF7AC6'],['Violett','#BC7CFF'],['Blau','#6CC0FF'],['Türkis','#2ED3BE'],['Limette','#A2CF36']];
 const L={T:46,N:5,HR:8.7,UA:25,FA:25,TH:36,SH:36};
 const VB_W=240,VB_H=210,FLOOR=198,CY=FLOOR-5,BAR=30,BALL=26,D2R=Math.PI/180;
@@ -965,6 +989,8 @@ EX.idle_rest={id:'idle_rest',n:'Pause',cat:'idle',mus:'',how:[],cue:'',bottle:1,
   tm:[2.4,1, .15,.5, .1,.45, .1,.9, 2.4,.9, 1.6,.9],
   frames:[{ua:178,fa:145,uab:4,fab:20},{ua:178,fa:145,uab:4,fab:20,ua2:70,uab2:5,fa2:305,fab2:-35,hd:4},{ua:178,fa:145,uab:4,fab:20,ua2:75,uab2:-30,fa2:315,fab2:-30,hd:4},{ua:178,fa:145,uab:4,fab:20,ua2:70,uab2:5,fa2:305,fab2:-35,hd:4},{ua:178,fa:145,uab:4,fab:20},{t:-3,hd:-18,ua:85,uab:5,fa:305,fab:-35}].map(f=>Object.assign({},F,f))}}
 const SPEED=['sp_sq','sp_jj','sp_mc'],BAL=['co1','co2','co3'],BAL_MAX=45;
+const balScore=(sec,lvl)=>Math.round((50+15*lvl+.6*Math.min(sec,BAL_MAX))*10)/10,balSec=(v,lvl)=>Math.round((v-50-15*lvl)/.6);
+const smooth=(ser,n=3)=>ser.map((x,i)=>{const w=ser.slice(Math.max(0,i-n+1),i+1);return[x[0],w.reduce((a,y)=>a+y[1],0)/w.length]});
 const MOBT={
  reach:{n:'Vorbeuge im Sitzen',ex:'d_ham',q:'Wie weit reichen deine Fingerspitzen bei gestreckten Knien?',opts:['bis zu den Knien','bis zur Schienbeinmitte','bis zu den Knöcheln','bis zu den Zehen','bis zur Fußsohle','über die Fußsohle hinaus']},
  squat:{n:'Tiefe Hocke',ex:'d_squat',q:'Wie gut kommst du in die tiefe Hocke?',opts:['Fersen heben deutlich ab','Fersen unten, nur mit Festhalten','Fersen unten, frei, aber wackelig','Fersen unten, frei und 30 s stabil']},
@@ -993,8 +1019,8 @@ function sanitize(o){
     done:o.done||{},log:Array.isArray(o.log)?o.log.slice(-400):[],
     cnt:typeof o.cnt==='number'?o.cnt:Object.values(o.done||{}).filter(x=>x&&(x.t==='A'||x.t==='B')).length,
     base:o.base||null,hist:Array.isArray(o.hist)?o.hist.slice(-400):[],
-    meas:o.meas&&typeof o.meas==='object'?{sp:o.meas.sp||{},bal:o.meas.bal||[],mob:o.meas.mob||{}}:f.meas,
-    balLv:o.balLv||0,dur:clamp(+o.dur||30,10,60),ldur:clamp(+o.ldur||5,2,15),name:typeof o.name==='string'?o.name.slice(0,16):'',onb:o.onb?1:0,noEqHint:o.noEqHint?1:0,theme:['dark','light','system'].includes(o.theme)?o.theme:'dark',acc:ACCENTS.some(a=>a[1]===o.acc)?o.acc:({'#FF7A70':'#FF5A4F','#B497FF':'#BC7CFF','#FFA347':'#FF8A00'}[o.acc]||'#F0B323'),prof:(()=>{const p=o.prof&&typeof o.prof==='object'?o.prof:{},n=(v,a,b)=>{v=+v;return v>=a&&v<=b?Math.round(v):undefined};const bd=typeof p.bd==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(p.bd)&&!isNaN(new Date(p.bd))?p.bd:undefined;return{bd,age:bd?undefined:n(p.age,10,100),h:n(p.h,100,230),w:n(p.w,30,250),sex:['m','w','d'].includes(p.sex)?p.sex:undefined}})(),xadj:o.xadj&&typeof o.xadj==='object'?o.xadj:{},dbs:Array.isArray(o.dbs)?o.dbs.filter(d=>d&&d.kg>0).map(d=>({kg:clamp(Math.round(+d.kg*2)/2,.5,50),n:d.n===1?1:2})):[{kg:12.5,n:2}],dbw:o.dbw&&typeof o.dbw==='object'?o.dbw:{},bands:o.bands&&o.bands.short&&o.bands.long?o.bands:{short:{L:1,M:1,S:1},long:{L:0,M:0,S:0}},eq:Object.assign({ball:1,bench:1,bar:1,mat:1},o.eq||{})};
+    meas:o.meas&&typeof o.meas==='object'?{sp:o.meas.sp||{},bal:(o.meas.bal||[]).map(e=>o.balv===2||!Array.isArray(e)?e:[e[0],balScore(e[1]-(e[2]||0)*45,e[2]||0),e[2]||0]),mob:o.meas.mob||{}}:f.meas,balv:2,
+    balLv:o.balLv||0,dur:clamp(+o.dur||30,10,60),ldur:clamp(+o.ldur||5,2,15),name:typeof o.name==='string'?o.name.slice(0,16):'',onb:o.onb?1:0,goals:(()=>{let g=Array.isArray(o.goals)?o.goals:o.goal?[o.goal]:['fit'];g=[...new Set(g.filter(k=>k in GOALS))].slice(0,3);return g.length?g:['fit']})(),noEqHint:o.noEqHint?1:0,theme:['dark','light','system'].includes(o.theme)?o.theme:'dark',acc:ACCENTS.some(a=>a[1]===o.acc)?o.acc:({'#FF7A70':'#FF5A4F','#B497FF':'#BC7CFF','#FFA347':'#FF8A00'}[o.acc]||'#F0B323'),prof:(()=>{const p=o.prof&&typeof o.prof==='object'?o.prof:{},n=(v,a,b)=>{v=+v;return v>=a&&v<=b?Math.round(v):undefined};const bd=typeof p.bd==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(p.bd)&&!isNaN(new Date(p.bd))?p.bd:undefined;return{bd,age:bd?undefined:n(p.age,10,100),h:n(p.h,100,230),w:n(p.w,30,250),sex:['m','w','d'].includes(p.sex)?p.sex:undefined}})(),xadj:o.xadj&&typeof o.xadj==='object'?o.xadj:{},dbs:Array.isArray(o.dbs)?o.dbs.filter(d=>d&&d.kg>0).map(d=>({kg:clamp(Math.round(+d.kg*2)/2,.5,50),n:d.n===1?1:2})):[{kg:12.5,n:2}],dbw:o.dbw&&typeof o.dbw==='object'?o.dbw:{},bands:o.bands&&o.bands.short&&o.bands.long?o.bands:{short:{L:1,M:1,S:1},long:{L:0,M:0,S:0}},eq:Object.assign({ball:1,bench:1,bar:1,mat:1},o.eq||{})};
   if(v<3){delete r.adj.hiitA;delete r.adj.hiitB}
   if(v<4)for(const k in r.xadj)if(k.startsWith('band:'))r.xadj[k]=r.xadj[k]+1;
   return r;
@@ -1024,7 +1050,7 @@ function eqOK(ex){return !ex.needs||ex.needs.every(n=>S.eq[n])}
 function dbOK(ex){const w=dbWeights(ex);return w===null||w.length>0}
 function bandOK(e){if(!e.band)return true;const ks=e.bandKind==='long'?['long']:e.bandKind==='any'?['short','long']:['short'];return ks.some(k=>S.bands[k]&&S.bands[k][e.band])}
 const NEAR={};{const o=['XL','L','M','S','XS'];o.forEach((b,i)=>{NEAR[b]=o.filter(x=>x!==b).sort((p,q)=>Math.abs(o.indexOf(p)-i)-Math.abs(o.indexOf(q)-i)||o.indexOf(p)-o.indexOf(q))})}
-const ACC_L={'#F0B323':'#946B0A','#FF8A00':'#B05000','#FF5A4F':'#E50E00','#FF7AC6':'#DD007E','#BC7CFF':'#9A3AFF','#6CC0FF':'#0075CD','#2ED3BE':'#1B8073','#A2CF36':'#607C1E'};
+const ACC_L={'#F0B323':'#DB9A00','#FF8A00':'#E07900','#FF5A4F':'#E50E00','#FF7AC6':'#DD007E','#BC7CFF':'#9A3AFF','#6CC0FF':'#0075CD','#2ED3BE':'#00A691','#A2CF36':'#73A300'};
 const MQD=matchMedia('(prefers-color-scheme: dark)');
 function applyAccent(){const r=document.documentElement,a=(S&&S.acc)||'#F0B323',th=(S&&S.theme)||'dark',t=th==='system'?(MQD.matches?'dark':'light'):th;
   r.dataset.theme=t;r.style.setProperty('--plate',a);if(t==='light'){r.style.setProperty('--plate-t',ACC_L[a]||a);r.style.setProperty('--plate-m',ACC_L[a]||a)}else{r.style.removeProperty('--plate-t');r.style.removeProperty('--plate-m')}
@@ -1035,7 +1061,7 @@ const LOWIMP={x3:'x2',y6:'y1',y4:'s1',y5:'s3b'};
 function ageFrom(bd){if(!bd)return 0;const b=new Date(bd+'T00:00:00'),t=today();let a=t.getFullYear()-b.getFullYear();if(t.getMonth()<b.getMonth()||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate()))a--;return a>0&&a<120?a:0}
 function profInfo(){const p=S.prof||{},age=ageFrom(p.bd)||p.age||0,h=p.h||0,w=p.w||0,bmi=h&&w?w/((h/100)**2):0;return{age,sex:p.sex||'',h,w,bmi,low:age>=55||bmi>=30}}
 const warmSec=()=>{const a=profInfo().age;return a>=60?60:a>=40?50:40};
-const restK=()=>{const a=profInfo().age;return a>=60?50:a>=45?45:35};
+const restK=()=>{const a=profInfo().age;return clamp((a>=60?50:a>=45?45:35)+(goal().rest||0),20,90)};
 function profStart(){
   if(S.cnt>0)return;const P=profInfo();
   for(const c in CH){let o=0;
@@ -1081,7 +1107,11 @@ function target(ex,chain){
 }
 function tgtHtml(ex,t){if(ex.unitTxt&&t.u!=='s')return `${t.n} <span>${ex.unitTxt}</span>`;return t.u==='s'?`${t.n} <span>Sekunden halten</span>`:`${t.n} <span>Wiederholungen${ex.side?' je Seite':''}</span>`}
 function tgtText(ex,t){if(ex.unitTxt&&t.u!=='s')return `${t.n} ${ex.unitTxt}`;return t.u==='s'?`${t.n} s halten`:`${t.n} Wiederholungen${ex.side?' je Seite':''}`}
-function hiitParams(chain){const a=S.adj[chain]||0,ag=profInfo().age,dw=ag>=60?-5:0,dr=ag>=60?10:ag>=45?5:0;return{w:clamp(25+5*a+dw,20,45),r:clamp(35-5*a+dr,15,50)}}
+const MAXREST=90;
+const isMaxK=(e,c)=>{if(!e||e.cat!=='kraft')return false;const t=target(e,c);return t.u!=='s'&&t.n<=6};
+const restFor=c=>{const e=EX[curEx(c)?.id];return isMaxK(e,c)?MAXREST:restK()};
+function hiitParams(chain){const a=S.adj[chain]||0,ag=profInfo().age,gh=goal().hiit||{w:0,r:0},dw=(ag>=60?-5:0)+gh.w,dr=(ag>=60?10:ag>=45?5:0)+gh.r;
+  return{w:clamp(25+5*a+dw,20,55),r:clamp(35-5*a+dr,15,50)}}
 const FB_KIND=v=>v<=15?'up':v<=38?'more':v<62?'keep':v<85?'less':'down';
 function applyFb(chain,exId,kind,dry){
   const ids=CH[chain].ids,i=idxOf(chain,exId),ex=EX[exId],hi=ex.cat==='hiit',a=S.adj[chain]||0;
@@ -1140,7 +1170,7 @@ function progressAll(){
   return{
     K:seriesProgress(snaps.map(s=>[s.d,s.K])),
     A:seriesProgress(snaps.map(s=>[s.d,s.A])),
-    S:combine(Object.values(S.meas.sp).map(seriesProgress)),
+    S:combine(Object.values(S.meas.sp).map(x=>seriesProgress(smooth(x)))),
     B:combine(Object.values(S.meas.mob).map(seriesProgress)),
     C:seriesProgress(S.meas.bal),
   };
@@ -1161,17 +1191,19 @@ function weights(){
 const BASE={K:660,A:300,S:180,C:180,B:180};
 function planModules(){
   const {w,pr}=weights(),T=S.dur*60,warm=S.dur<20?80:160,over=90;
+  {const gw=goal().w;for(const k in w)w[k]*=gw[k]??1}
   const lt=lastTraining(key(today())),sv=lt?S.sore[lt]:null;if(sv>=2)w.K*=sv===3?.7:.85;
   const tot=Object.values(BASE).reduce((a,b)=>a+b,0),sc=Math.max(.2,(T-warm-over)/tot),b={};
   for(const k in BASE)b[k]=BASE[k]*w[k]*sc;
   const iv=mean(['hiitA','hiitB'].map(c=>{const p=hiitParams(c);return p.w+p.r}));
+  const kch=Object.values(SESS).flatMap(d=>d.blocks.flat()),RC=2*(45+mean(kch.map(c=>restFor(c))));
   const P={kb:b.K<240?1:2,kr:0,an:clamp(Math.round(b.A/iv),2,12),sn:clamp(Math.round(b.S/70),1,6),cr:clamp(Math.round(b.C/110),1,3),bn:clamp(Math.round(b.B/50),1,8)};
-  P.kr=clamp(Math.round(b.K/(P.kb*160)),1,4);
-  const est=()=>warm+P.kb*P.kr*160+P.an*iv+P.sn*70+P.cr*110+P.bn*50+30+over;
+  P.kr=clamp(Math.round(b.K/(P.kb*RC)),1,5);
+  const est=()=>warm+P.kb*P.kr*RC+P.an*iv+P.sn*70+P.cr*110+P.bn*50+30+over;
   const mins={kr:1,an:2,sn:1,cr:1,bn:1},ar={kr:'K',an:'A',sn:'S',cr:'C',bn:'B'};
   const pref=['an','bn','sn','cr','kr'];
   while(est()>T+60){const c=Object.keys(mins).filter(k=>P[k]>mins[k]).sort((x,y)=>(w[ar[x]]-w[ar[y]])||(pref.indexOf(x)-pref.indexOf(y)));if(c.length){P[c[0]]--;continue}if(P.kb>1){P.kb=1;continue}break}
-  const cost={kr:P.kb*160,an:iv,sn:70,cr:110,bn:50},mx={kr:4,an:12,sn:6,cr:3,bn:8};
+  const cost={kr:P.kb*RC,an:iv,sn:70,cr:110,bn:50},mx={kr:5,an:12,sn:6,cr:3,bn:8};
   for(let g=0;g<40;g++){const c=Object.keys(mx).filter(k=>P[k]<mx[k]&&est()+cost[k]<=T).sort((x,y)=>(w[ar[y]]-w[ar[x]])||((P[x]*cost[x])-(P[y]*cost[y])));if(!c.length)break;P[c[0]]++}
   return{P,w,pr,warm};
 }
@@ -1208,11 +1240,16 @@ function applyX(it,kind,dry){
   return '';
 }
 function secWith(id,base,n){const dehn=EX[id].cat==='dehn';return clamp(base+n*(dehn?10:5),dehn?30:25,dehn?90:75)}
-function buildSession(type,avoid=[],extra={}){
+function buildSession(type,avoid=[]){
+  const target=S.dur*60,order=['an','bn','kr','an','bn','sn'];let ex={},s0=buildRaw(type,avoid,ex);
+  for(let i=0;i<14&&sesSec(s0)<target-60;i++){const k=order[i%order.length],t={...ex,[k]:(ex[k]||0)+1},s1=buildRaw(type,avoid,t);if(sesSec(s1)>target+75)continue;ex=t;s0=s1}
+  if(avoid.length)s0.avoid=avoid.slice();return s0}
+function buildRaw(type,avoid=[],extra={}){
   const def=SESS[type],pl=planModules(),P=Object.assign({},pl.P),steps=[],cur={},hit=avoidHit(avoid),AV=avoid.length>0;
   for(const k in extra)P[k]=(P[k]||0)+extra[k];
   for(const c of[...def.blocks.flat(),...def.hiit])cur[c]=curEx(c)?.id||null;
   let blocks=def.blocks;
+  {const sw=goal().swap;if(sw){const used=new Set(blocks.flat());blocks=blocks.map(pair=>pair.map(c=>{const t=sw[c];if(t&&!used.has(t)&&curEx(t)){used.add(t);cur[t]=curEx(t).id;return t}return c}))}}
   if(AV){const other=Object.values(SESS).flatMap(d=>d.blocks.flat()).filter(c=>!def.blocks.flat().includes(c));
     blocks=def.blocks.map(pair=>pair.map(c=>{if(!cur[c]||!hit(EX[cur[c]]))return c;const alt=other.find(o=>!Object.keys(cur).includes(o)&&curEx(o)&&!hit(curEx(o)));if(alt){cur[alt]=curEx(alt).id;return alt}cur[c]=null;return c}))}
   const wsrc=pl.warm<160?[def.warm[0],def.warm[3]]:def.warm;
@@ -1234,7 +1271,7 @@ function buildSession(type,avoid=[],extra={}){
     seq.forEach(([c,r],i)=>{
       steps.push({k:'set',chain:c,r,of:rn(c),ar:'K',ph:`Kraft, Block ${bi+1}, Runde ${r} von ${rn(c)}`});
       const last=r===rn(c);
-      if(i<seq.length-1){const rs={k:'rest',sec:restK(),ar:'K'};if(last)rs.fb=c;steps.push(rs)}
+      if(i<seq.length-1){const mx=isMaxK(EX[cur[c]],c),rs={k:'rest',sec:mx?MAXREST:restK(),ar:'K'};if(mx)rs.why='max';if(last)rs.fb=c;steps.push(rs)}
       else if(last)steps.push({k:'fb',chain:c,ar:'K'});
     });
   });
@@ -1242,10 +1279,10 @@ function buildSession(type,avoid=[],extra={}){
   const hc=def.hiit.filter(c=>cur[c]&&!(AV&&hit(EX[cur[c]])));
   if(hc.length){for(let i=0;i<P.an;i++){const c=hc[i%hc.length],hp=hiitParams(c);steps.push({k:'int',chain:c,work:hp.w,rest:i<P.an-1?hp.r:0,i,of:P.an,ar:'A'})}
     hc.forEach(c=>steps.push({k:'fb',chain:c,ar:'A'}))}
-  else if(AV){const alt=def.hiit.flatMap(c=>CH[c].ids).map(id=>resolve(id)).filter(id=>id&&!hit(EX[id]));if(alt.length){const c=def.hiit[0],hp=hiitParams(c);for(let i=0;i<P.an;i++)steps.push({k:'int',chain:c,ex:alt[i%Math.min(2,alt.length)],work:hp.w,rest:i<P.an-1?hp.r:0,i,of:P.an,ar:'A'})}}
+  else if(AV){const alt=def.hiit.flatMap(c=>CH[c].ids).map(id=>resolve(id)).filter(id=>id&&!hit(EX[id]));if(alt.length){const c=def.hiit[0];for(let i=0;i<P.an;i++){const x=alt[i%Math.min(2,alt.length)],hp=hiitParams(c);steps.push({k:'int',chain:c,ex:x,work:hp.w,rest:i<P.an-1?hp.r:0,i,of:P.an,ar:'A'})}}}
   // Beweglichkeit mit Messung
   const test=['reach','squat'][S.cnt%2],tex=MOBT[test].ex,texOK=!(AV&&hit(EX[tex]));
-  const pool=['d_hip','d_chest','d_dog','d_sphinx','d_child','d_catcow','d_knees','d_ham','d_side','d_neck'].filter(id=>EX[id]&&!S.ex.includes(id)&&id!==tex&&!(AV&&hit(EX[id])));
+  const pool=[...new Set([...(goal().stretch||[]),'d_hip','d_chest','d_dog','d_sphinx','d_child','d_catcow','d_knees','d_ham','d_side','d_neck'])].filter(id=>EX[id]&&!S.ex.includes(id)&&id!==tex&&!(AV&&hit(EX[id])));
   const st=[];for(let i=0;i<P.bn-(texOK?1:0)&&i<pool.length;i++)st.push(pool[(S.cnt+i)%pool.length]);if(texOK)st.push(tex);
   st.forEach((id,i)=>steps.push({k:'timed',ex:id,sec:xsec(id,45),ar:'B',ph:`Beweglichkeit, ${i+1} von ${st.length}`}));
   if(texOK)steps.push({k:'mob',test,ar:'B'});
@@ -1432,7 +1469,7 @@ function openSettings(opts={}){
 <div class="pfg">
 <label><span>Größe</span><span class="pfi"><input type="number" inputmode="numeric" id="pf_h" min="100" max="230" value="${S.prof.h??''}" placeholder="–"><i>cm</i></span></label>
 <label><span>Gewicht</span><span class="pfi"><input type="number" inputmode="decimal" id="pf_w" min="30" max="250" value="${S.prof.w??''}" placeholder="–"><i>kg</i></span></label></div>
-<p class="muted small" id="pffx">${esc(profEffects())}</p></details><details class="eqd" id="timed"><summary>Trainingszeiten</summary><h3 class="sub">Trainingstage</h3><div class="chips" id="days">${order.map(i=>`<button class="chip" data-d="${i}" aria-pressed="${S.days.includes(i)}">${WD[i].slice(0,2)}</button>`).join('')}</div><p class="muted small">An allen anderen Tagen bietet dir die App eine Lockerung an. Mindestens ein Tag bleibt ausgewählt.</p><h3 class="sub">Trainingsdauer</h3><div class="dur"><input type="range" id="dur" min="10" max="60" step="5" value="${S.dur}" class="durr" aria-label="Trainingsdauer in Minuten"><output id="durv">${S.dur} min</output></div><p class="muted small">Alle fünf Bereiche bleiben enthalten. Bei kurzen Einheiten wird jeder Bereich nur kurz trainiert, bei langen kommen Kraftrunden, Intervalle und Dehnübungen dazu.</p><h3 class="sub">Dauer der Lockerung</h3><div class="dur"><input type="range" id="ldur" min="2" max="15" step="1" value="${S.ldur||5}" class="durr" aria-label="Dauer der Lockerung in Minuten"><output id="ldurv">${S.ldur||5} min</output></div><p class="muted small">Gilt für alle Tage ohne Training. Bei längerer Lockerung kommen mehr Übungen dazu und die Haltezeiten werden länger.</p></details><details class="eqd" id="eqd"><summary>Equipment</summary><h3 class="sub">Vorhanden</h3><div class="chips" id="eqc"></div><p class="muted small">Fehlt etwas, ersetzt die App die betroffenen Übungen. Ohne Yoga-Matte gehen Bodenübungen auch auf Teppich oder einem Handtuch.</p><h3 class="sub">Therabänder</h3><div id="bnd"></div><p class="muted small">Kurze Bänder sind geschlossene Schlaufen (Minibänder), lange Bänder offene Bänder. Fehlt eine Stärke, nimmt die App die nächstliegende. Ohne passende Bänder gibt es Übungen ohne Band.</p><h3 class="sub">Kurzhanteln</h3><div id="dbl"></div><p class="muted small">Übungen mit zwei Hanteln brauchen zwei gleich schwere. Fehlen passende Hanteln, nimmt die App eine gleichwertige Übung mit dem eigenen Körpergewicht. Ist eine Übung zu leicht, schlägt die App zuerst die nächstschwerere Hantel vor, dann die nächste Stufe.</p></details><details class="eqd" id="accd"><summary>Design</summary><h3 class="sub">Modus</h3><div class="chips" id="thc">${[['light','Hell'],['dark','Dunkel'],['system','System']].map(([k,n])=>`<button class="chip" data-t="${k}" aria-pressed="${S.theme===k}">${n}</button>`).join('')}</div><p class="muted small">„System“ folgt der Einstellung deines Geräts.</p><h3 class="sub">Akzentfarbe</h3><p class="muted small" style="margin-top:0">Für Knöpfe, Markierungen, Hanteln und Muskelkarte. Im hellen Modus nutzt die App für Schrift und Symbole einen dunkleren Ton derselben Farbe, damit alles gut lesbar bleibt.</p><div class="accs" id="accs">${ACCENTS.map(([n,c])=>`<button class="acc" data-c="${c}" aria-pressed="${S.acc===c}" aria-label="${n}"><i style="background:${c}"></i><span>${n}</span></button>`).join('')}</div></details><details class="eqd" id="datad"><summary>Daten</summary>${FILEIO?'<button class="btn quiet" id="dx" style="justify-content:flex-start">Daten als Datei sichern</button><button class="btn quiet" id="dl" style="justify-content:flex-start">Daten aus Datei laden</button>':''}<button class="btn quiet" id="tx" style="justify-content:flex-start">Daten übertragen</button><button class="btn quiet" id="rs" style="justify-content:flex-start">Alles zurücksetzen</button></details><p class="muted small verl">Version 1.3.1</p></div></div>`).firstChild;
+<p class="muted small" id="pffx">${esc(profEffects())}</p></details><details class="eqd" id="goald"><summary>Trainingsziele</summary><p class="muted small" style="margin-top:0">Das zuerst gewählte Ziel ist dein Hauptziel. Bis zu zwei weitere Ziele kannst du als Nebenziele dazunehmen. Antippen eines gewählten Ziels nimmt es wieder heraus.</p><div class="chips" id="goalc">${goalChips()}</div><p class="small" id="goalt" style="margin-top:10px">${goalText()}</p></details><details class="eqd" id="timed"><summary>Trainingszeiten</summary><h3 class="sub">Trainingstage</h3><div class="chips" id="days">${order.map(i=>`<button class="chip" data-d="${i}" aria-pressed="${S.days.includes(i)}">${WD[i].slice(0,2)}</button>`).join('')}</div><p class="muted small">An allen anderen Tagen bietet dir die App eine Lockerung an. Mindestens ein Tag bleibt ausgewählt.</p><h3 class="sub">Trainingsdauer</h3><div class="dur"><input type="range" id="dur" min="10" max="60" step="5" value="${S.dur}" class="durr" aria-label="Trainingsdauer in Minuten"><output id="durv">${S.dur} min</output></div><p class="muted small">Alle fünf Bereiche bleiben enthalten. Bei kurzen Einheiten wird jeder Bereich nur kurz trainiert, bei langen kommen Kraftrunden, Intervalle und Dehnübungen dazu.</p><h3 class="sub">Dauer der Lockerung</h3><div class="dur"><input type="range" id="ldur" min="2" max="15" step="1" value="${S.ldur||5}" class="durr" aria-label="Dauer der Lockerung in Minuten"><output id="ldurv">${S.ldur||5} min</output></div><p class="muted small">Gilt für alle Tage ohne Training. Bei längerer Lockerung kommen mehr Übungen dazu und die Haltezeiten werden länger.</p></details><details class="eqd" id="eqd"><summary>Equipment</summary><h3 class="sub">Vorhanden</h3><div class="chips" id="eqc"></div><p class="muted small">Fehlt etwas, ersetzt die App die betroffenen Übungen. Ohne Yoga-Matte gehen Bodenübungen auch auf Teppich oder einem Handtuch.</p><h3 class="sub">Therabänder</h3><div id="bnd"></div><p class="muted small">Kurze Bänder sind geschlossene Schlaufen (Minibänder), lange Bänder offene Bänder. Fehlt eine Stärke, nimmt die App die nächstliegende. Ohne passende Bänder gibt es Übungen ohne Band.</p><h3 class="sub">Kurzhanteln</h3><div id="dbl"></div><p class="muted small">Übungen mit zwei Hanteln brauchen zwei gleich schwere. Fehlen passende Hanteln, nimmt die App eine gleichwertige Übung mit dem eigenen Körpergewicht. Ist eine Übung zu leicht, schlägt die App zuerst die nächstschwerere Hantel vor, dann die nächste Stufe.</p></details><details class="eqd" id="accd"><summary>Design</summary><h3 class="sub">Modus</h3><div class="chips" id="thc">${[['light','Hell'],['dark','Dunkel'],['system','System']].map(([k,n])=>`<button class="chip" data-t="${k}" aria-pressed="${S.theme===k}">${n}</button>`).join('')}</div><p class="muted small">„System“ folgt der Einstellung deines Geräts.</p><h3 class="sub">Akzentfarbe</h3><p class="muted small" style="margin-top:0">Für Knöpfe, Markierungen, Hanteln und Muskelkarte. Im hellen Modus nutzt die App für Schrift und Symbole einen dunkleren Ton derselben Farbe, damit alles gut lesbar bleibt.</p><div class="accs" id="accs">${ACCENTS.map(([n,c])=>`<button class="acc" data-c="${c}" aria-pressed="${S.acc===c}" aria-label="${n}"><i style="background:${c}"></i><span>${n}</span></button>`).join('')}</div></details><details class="eqd" id="datad"><summary>Daten</summary>${FILEIO?'<button class="btn quiet" id="dx" style="justify-content:flex-start">Daten als Datei sichern</button><button class="btn quiet" id="dl" style="justify-content:flex-start">Daten aus Datei laden</button>':''}<button class="btn quiet" id="tx" style="justify-content:flex-start">Daten übertragen</button><button class="btn quiet" id="rs" style="justify-content:flex-start">Alles zurücksetzen</button></details><p class="muted small verl">Version 1.7.0</p></div></div>`).firstChild;
   const gear=document.getElementById('gear');
   const close=()=>{sh.remove();unlockScroll();gear.setAttribute('aria-expanded','false');window.removeEventListener('resize',pos);render()};sh._close=close;
   const pos=()=>{sh.style.top=Math.max(0,document.querySelector('.brand').getBoundingClientRect().bottom)+'px'};
@@ -1446,6 +1483,7 @@ function openSettings(opts={}){
   sh.querySelectorAll('#sexc .chip').forEach(b=>b.onclick=()=>{const k=b.dataset.s;S.prof.sex=S.prof.sex===k?undefined:k;for(const id in EX){const e=EX[id];delete e._f;delete e._ikT;delete e._fixT;delete e._fp;delete e._wipe}sh.querySelectorAll('#sexc .chip').forEach(x=>x.setAttribute('aria-pressed',S.prof.sex===x.dataset.s));pfx()});
   {const bi=sh.querySelector('#pf_bd');bi.onchange=()=>{const v=bi.value,ok=/^\d{4}-\d{2}-\d{2}$/.test(v)&&ageFrom(v)>=10&&ageFrom(v)<=100;S.prof.bd=ok?v:undefined;if(ok)S.prof.age=undefined;if(!ok&&v)bi.value=S.prof.bd||'';sh.querySelector('#pf_agev').textContent=ageFrom(S.prof.bd)?ageFrom(S.prof.bd)+' Jahre':'';pfx()}}
   [['pf_h','h',100,230],['pf_w','w',30,250]].forEach(([id,k,a,b])=>{const i=sh.querySelector('#'+id);i.onchange=()=>{const v=Math.round(+i.value);if(i.value===''){S.prof[k]=undefined}else if(v>=a&&v<=b){S.prof[k]=v;i.value=v}else{i.value=S.prof[k]??''}pfx()}});
+  bindGoals(sh);
   sh.querySelectorAll('#thc .chip').forEach(b=>b.onclick=()=>{S.theme=b.dataset.t;applyAccent();sh.querySelectorAll('#thc .chip').forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===S.theme));save()});
   sh.querySelectorAll('#accs .acc').forEach(b=>b.onclick=()=>{S.acc=b.dataset.c;applyAccent();sh.querySelectorAll('#accs .acc').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===S.acc));save()});
   const ni=sh.querySelector('#nm_in');ni.oninput=()=>{S.name=ni.value.slice(0,16);wordmark()};ni.onchange=()=>save();
@@ -1453,7 +1491,7 @@ function openSettings(opts={}){
   const lr=sh.querySelector('#ldur');lr.oninput=()=>{sh.querySelector('#ldurv').textContent=lr.value+' min'};lr.onchange=()=>{S.ldur=+lr.value;save()};
   sh.querySelector('#tx').onclick=()=>{close();transferSheet()};
   if(FILEIO){sh.querySelector('#dx').onclick=exportFile;sh.querySelector('#dl').onclick=importFile}
-  sh.querySelector('#rs').onclick=()=>ask('Bist du sicher? Alle Trainingsdaten werden gelöscht: Stufen, Messwerte, Rückmeldungen und der Trainingsverlauf. Das lässt sich nicht rückgängig machen. Trainingstage, Dauer und Equipment bleiben erhalten.','Ja, alles löschen',()=>{const k={noEqHint:S.noEqHint,theme:S.theme,acc:S.acc,onb:S.onb,days:S.days,dur:S.dur,ldur:S.ldur,name:S.name,prof:S.prof,dbs:S.dbs,bands:S.bands,eq:S.eq};S=Object.assign(fresh(),k);save();close()},'Abbrechen',true);
+  sh.querySelector('#rs').onclick=()=>ask('Bist du sicher? Alle Trainingsdaten werden gelöscht: Stufen, Messwerte, Rückmeldungen und der Trainingsverlauf. Das lässt sich nicht rückgängig machen. Trainingstage, Dauer und Equipment bleiben erhalten.','Ja, alles löschen',()=>{const k={goals:S.goals,noEqHint:S.noEqHint,theme:S.theme,acc:S.acc,onb:S.onb,days:S.days,dur:S.dur,ldur:S.ldur,name:S.name,prof:S.prof,dbs:S.dbs,bands:S.bands,eq:S.eq};S=Object.assign(fresh(),k);save();close()},'Abbrechen',true);
   document.body.append(sh);lockScroll();pos();window.addEventListener('resize',pos);gear.setAttribute('aria-expanded','true');
 }
 function pct(p){const v=Math.round(p*100);return(v>0?'+':v<0?'−':'±')+Math.abs(v)+' %'}
@@ -1467,7 +1505,7 @@ function progressCard(title){
 function measCard(){
   const rows=[];
   for(const id in S.meas.sp){const a=S.meas.sp[id];if(a.length){const best=Math.max(...a.map(x=>x[1]));rows.push([EX[id].n,`${a[a.length-1][1]} in 15 s, Bestwert ${best}`])}}
-  if(S.meas.bal.length){const l=S.meas.bal[S.meas.bal.length-1];rows.push(['Einbeinstand',`${Math.round(l[1]-(l[2]||0)*BAL_MAX)} s auf Stufe ${(l[2]||0)+1} von 3`])}
+  if(S.meas.bal.length){const l=S.meas.bal[S.meas.bal.length-1];rows.push(['Einbeinstand',`${balSec(l[1],l[2]||0)} s auf Stufe ${(l[2]||0)+1} von 3`])}
   for(const t in S.meas.mob){const a=S.meas.mob[t];if(a.length)rows.push([MOBT[t].n,MOBT[t].opts[a[a.length-1][1]-1]])}
   return `<section class="card"><h2>Letzte Messwerte</h2>${rows.length?`<ul class="list">${rows.map(([a,b])=>`<li style="display:block"><span class="k small">${esc(a)}</span><br>${esc(b)}</li>`).join('')}</ul>`:'<p class="muted">Kommen mit dem ersten Training.</p>'}</section>`;
 }
@@ -1549,7 +1587,7 @@ let chartArea='K';
 function areaSeries(k){
   const by={},add=(d,v)=>{(by[d]=by[d]||[]).push(v)};
   if(k==='K'||k==='A'){const sn=[...(S.base?[S.base]:[]),...S.hist].filter(x=>x&&x[k]);if(sn.length){const f=sn[0][k];sn.forEach(x=>add(x.d,x[k]/f*100))}}
-  else{const gs=k==='S'?Object.values(S.meas.sp):k==='B'?Object.values(S.meas.mob):[S.meas.bal];
+  else{const gs=k==='S'?Object.values(S.meas.sp).map(x=>smooth(x)):k==='B'?Object.values(S.meas.mob):[S.meas.bal];
     for(const ser of gs){if(!ser||!ser.length||!ser[0][1])continue;const f=ser[0][1];ser.forEach(([d,v])=>add(d,v/f*100))}}
   return Object.keys(by).sort().map(d=>[d,mean(by[d])]);
 }
@@ -1598,7 +1636,7 @@ function renderLib(){
   for(const {id,c,j} of list){
     if(c&&c!==lastC){lastC=c;app.append(h(`<h3 style="margin:18px 0 4px">${CH[c].n}</h3>`))}
     const e=EX[id],cur=c&&(curEx(c)?.id===id||curEx(c)?.id===resolve(id)&&resolve(id)!==id&&idxOf(c,curEx(c).id)===j);
-    const row=h(`<button class="ex-row"><span class="th"></span><span><b>${esc(libCat==='band'?BANDBASE[e.base_id].n:e.n)}</b><span class="muted small">${esc(e.mus)}</span><br>${libCat==='band'?'<span class="tag">Light, Medium oder Strong</span>':''}${c?`<span class="tag">Stufe ${j+1}</span>`:''}${(resolve(id)&&resolve(id)!==id)?`<span class="tag">stattdessen: ${esc(EX[resolve(id)].n)}</span>`:''}${cur?'<span class="tag" style="background:var(--plate);color:#1E2940">aktuell</span>':''}${S.ex.includes(id)?'<span class="tag x">ausgeschlossen</span>':''}${!eqOK(e)?`<span class="tag x">fehlt: ${e.needs.filter(n=>!S.eq[n]).map(n=>EQN[n]).join(', ')}</span>`:''}</span></button>`).firstChild;
+    const row=h(`<button class="ex-row"><span class="th"></span><span><b>${esc(libCat==='band'?BANDBASE[e.base_id].n:e.n)}</b><span class="muted small">${esc(e.mus)}</span><br>${libCat==='band'?'<span class="tag">Light, Medium oder Strong</span>':''}${c?`<span class="tag">Stufe ${j+1}</span>`:''}${(resolve(id)&&resolve(id)!==id)?`<span class="tag">stattdessen: ${esc(EX[resolve(id)].n)}</span>`:''}${cur?'<span class="tag" style="background:var(--plate);color:var(--on-plate)">aktuell</span>':''}${S.ex.includes(id)?'<span class="tag x">ausgeschlossen</span>':''}${!eqOK(e)?`<span class="tag x">fehlt: ${e.needs.filter(n=>!S.eq[n]).map(n=>EQN[n]).join(', ')}</span>`:''}</span></button>`).firstChild;
     prep(e);row.querySelector('.th').append(makeStage(e,{static:true,single:true,at:e._f.length>2?.3:.45}));
     row.onclick=()=>openDetail(e);
     const item=document.createElement('div');item.className='ex-item'+(isExcl(e)?' excl':'');item.append(row);
@@ -1655,12 +1693,13 @@ function renderOnb(){
   const dots=`<div class="onb-dots" aria-hidden="true">${steps.map((_,i)=>`<i class="${i===st?'on':i<st?'done':''}"></i>`).join('')}</div>`;
   let body='';
   if(st===0)body=`<h1>Willkommen bei YOURGYM</h1><p class="muted">Bevor es losgeht, ein paar kurze Fragen. Damit stellt die App deinen Trainingsplan auf dich, deine Zeit und dein Equipment ein. Alles lässt sich später in den Einstellungen ändern.</p>`;
-  else if(st===1)body=`<h1>Profil</h1><p class="muted">Geburtsdatum, Größe und Gewicht helfen der App, Belastung, Pausen und Einstiegsstufen passend zu wählen.</p>
+  else if(st===1)body=`<h1>Profil</h1><p class="muted">Geburtsdatum, Größe, Gewicht und dein Ziel helfen der App, Belastung, Pausen und Übungen passend zu wählen.</p>
     <h3 class="sub">Dein Name</h3><input type="text" id="nm_in" class="nmin" maxlength="16" autocomplete="given-name" value="${esc(S.name||'')}" aria-label="Dein Name">
     <h3 class="sub">Geschlecht</h3><div class="chips" id="sexc">${[['m','Männlich'],['w','Weiblich'],['d','Divers']].map(([k,nm])=>`<button class="chip" data-s="${k}" aria-pressed="${S.prof.sex===k}">${nm}</button>`).join('')}</div>
     <label class="pfbd"><span>Geburtsdatum</span><span class="pfi"><input type="date" lang="de" id="pf_bd" min="1920-01-01" max="${key(addDays(today(),-3650))}" value="${S.prof.bd??''}"><i id="pf_agev">${ageFrom(S.prof.bd)?ageFrom(S.prof.bd)+' Jahre':''}</i></span></label>
     <div class="pfg"><label><span>Größe</span><span class="pfi"><input type="number" inputmode="numeric" id="pf_h" min="100" max="230" value="${S.prof.h??''}" placeholder="–"><i>cm</i></span></label>
-    <label><span>Gewicht</span><span class="pfi"><input type="number" inputmode="decimal" id="pf_w" min="30" max="250" value="${S.prof.w??''}" placeholder="–"><i>kg</i></span></label></div>`;
+    <label><span>Gewicht</span><span class="pfi"><input type="number" inputmode="decimal" id="pf_w" min="30" max="250" value="${S.prof.w??''}" placeholder="–"><i>kg</i></span></label></div>
+    <h3 class="sub">Trainingsziele</h3><p class="muted small" style="margin-top:0">Das zuerst gewählte ist dein Hauptziel, bis zu zwei weitere zählen als Nebenziele.</p><div class="chips" id="goalc">${goalChips()}</div><p class="small" id="goalt" style="margin-top:10px">${goalText()}</p>`;
   else if(st===2){const order=[1,2,3,4,5,6,0];body=`<h1>Trainingszeiten</h1><p class="muted">An welchen Tagen möchtest du trainieren, und wie lange?</p>
     <h3 class="sub">Trainingstage</h3><div class="chips" id="days">${order.map(i=>`<button class="chip" data-d="${i}" aria-pressed="${S.days.includes(i)}">${WD[i].slice(0,2)}</button>`).join('')}</div><p class="muted small">An allen anderen Tagen bietet dir die App eine Lockerung an. Mindestens ein Tag bleibt ausgewählt.</p>
     <h3 class="sub">Trainingsdauer</h3><div class="dur"><input type="range" id="dur" min="10" max="60" step="5" value="${S.dur}" class="durr" aria-label="Trainingsdauer in Minuten"><output id="durv">${S.dur} min</output></div>
@@ -1672,7 +1711,8 @@ function renderOnb(){
   if(st===1){const ni=v.querySelector('#nm_in');ni.oninput=()=>{S.name=ni.value.slice(0,16);wordmark()};ni.onchange=()=>save();
     v.querySelectorAll('#sexc .chip').forEach(b=>b.onclick=()=>{const k=b.dataset.s;S.prof.sex=S.prof.sex===k?undefined:k;for(const id in EX){const e=EX[id];delete e._f;delete e._ikT;delete e._fixT;delete e._fp;delete e._wipe}document.querySelectorAll('#sexc .chip').forEach(x=>x.setAttribute('aria-pressed',S.prof.sex===x.dataset.s));save()});
     const bi=v.querySelector('#pf_bd');bi.onchange=()=>{const val=bi.value,ok=/^\d{4}-\d{2}-\d{2}$/.test(val)&&ageFrom(val)>=10&&ageFrom(val)<=100;S.prof.bd=ok?val:undefined;if(!ok&&val)bi.value=S.prof.bd||'';document.getElementById('pf_agev').textContent=ageFrom(S.prof.bd)?ageFrom(S.prof.bd)+' Jahre':'';save()};
-    [['pf_h','h',100,230],['pf_w','w',30,250]].forEach(([id,k,a,b])=>{const i=v.querySelector('#'+id);i.onchange=()=>{const x=Math.round(+i.value);if(i.value==='')S.prof[k]=undefined;else if(x>=a&&x<=b){S.prof[k]=x;i.value=x}else i.value=S.prof[k]??'';save()}})}
+    [['pf_h','h',100,230],['pf_w','w',30,250]].forEach(([id,k,a,b])=>{const i=v.querySelector('#'+id);i.onchange=()=>{const x=Math.round(+i.value);if(i.value==='')S.prof[k]=undefined;else if(x>=a&&x<=b){S.prof[k]=x;i.value=x}else i.value=S.prof[k]??'';save()}});
+    bindGoals(v)}
   if(st===2){v.querySelectorAll('#days .chip').forEach(b=>b.onclick=()=>{const d=+b.dataset.d;if(S.days.includes(d)){if(S.days.length===1)return;S.days=S.days.filter(x=>x!==d)}else S.days=[...S.days,d].sort();b.setAttribute('aria-pressed',S.days.includes(d));save()});
     const dr=v.querySelector('#dur');dr.oninput=()=>{document.getElementById('durv').textContent=dr.value+' min'};dr.onchange=()=>{S.dur=+dr.value;save()};
     const lr=v.querySelector('#ldur');lr.oninput=()=>{document.getElementById('ldurv').textContent=lr.value+' min'};lr.onchange=()=>{S.ldur=+lr.value;save()}}
@@ -1684,11 +1724,7 @@ function renderOnb(){
 const PARTS=[['sh','Schultern',['delt','rdelt']],['ch','Brust',['chest']],['ar','Arme',['bi','tri','fore']],['ha','Hände und Handgelenke',['hand']],['ub','Oberer Rücken',['upback','lat']],['lb','Unterer Rücken',['lowback']],['ab','Bauch und Rumpf',['abs']],['hi','Hüfte und Gesäß',['glute','gmed']],['th','Oberschenkel und Knie',['quad','ham']],['ft','Waden und Füße',['calf','foot']]];
 function avoidHit(keys){const G=new Set(PARTS.filter(p=>keys.includes(p[0])).flatMap(p=>p[2]));return e=>!!e&&G.size>0&&Object.entries(musOf(e)).some(([g,v])=>G.has(g)&&v>=.6)}
 function sesSec(x){return x.steps.reduce((a,st)=>a+stepSec(st,x.cur),0)}
-function buildAvoid(type,keys){
-  const base=buildSession(type);if(!keys||!keys.length)return base;
-  const target=sesSec(base),order=['an','bn','kr','an','bn','sn'];let ex={},s0=buildSession(type,keys,ex);
-  for(let i=0;i<14&&sesSec(s0)<target-25;i++){const k=order[i%order.length],t={...ex,[k]:(ex[k]||0)+1},s1=buildSession(type,keys,t);if(sesSec(s1)>target+75)continue;ex=t;s0=s1}
-  s0.avoid=keys.slice();return s0}
+const buildAvoid=(type,keys)=>buildSession(type,keys||[]);
 function openPreview(s,title,o={}){PREV=Object.assign({s,title:title||(s&&SESS[s.type]?SESS[s.type].n:'Einheit')},o);view='preview';render();window.scrollTo(0,0)}
 function previewItems(s){
   const AN={W:'Aufwärmen',C:'Koordination',S:'Schnelligkeit',K:'Kraft',A:'Ausdauer',B:'Beweglichkeit'};
@@ -1773,16 +1809,17 @@ function stSet(st){
     const r=curEx(st.chain);if(r)SES.cur[st.chain]=r.id;save();render();
   };
 }
+const TIPS=['Trink ein paar Schlucke Wasser. Schon leichter Flüssigkeitsmangel kostet Kraft.','Atme ruhig und tief: etwa 4 Sekunden ein, 6 Sekunden aus. Das senkt den Puls schneller.','Bleib locker in Bewegung, zum Beispiel ein paar Schritte auf der Stelle. Das hält die Muskeln warm.','Schüttle Arme und Beine kurz aus und lass die Schultern ein paar Mal kreisen.','Geh den nächsten Satz im Kopf durch: Ausgangsposition, Bewegung, Atmung.','Saubere Technik geht vor: Lieber eine Wiederholung weniger als eine unsaubere.','Atme beim Anstrengen aus und beim Zurückgehen ein. Nicht die Luft anhalten.','Brennende Muskeln sind normal. Stechender Schmerz in Gelenken ist ein Signal zum Aufhören.','Trockne kurz die Hände ab, das gibt beim nächsten Satz einen sicheren Griff.','Spann vor dem nächsten Satz den Rumpf an, als würdest du gleich angestupst.','Nutz die Pause wirklich zur Erholung. Volle Kraft im nächsten Satz bringt mehr als Eile.'];
 function stRest(st){
   const nx=SES.steps[SES.i+1];const ne=nx&&(nx.chain||nx.ex)?exFor(nx):null;
   const sub=!ne?'':nx.k==='set'?tgtText(ne,target(ne,nx.chain))+(dbText(nx.chain,ne)?', '+dbText(nx.chain,ne):''):nx.k==='speed'?'15 s maximales Tempo':'';
-  const c=h(`<p class="phase">Pause</p><h2>Kurz erholen</h2><div class="stg reststg" style="margin-top:10px"></div><div class="timer rest" id="tm">${st.sec}</div><div class="slot"></div><p class="muted" id="lbl" style="text-align:center;margin-top:-4px"> </p><div class="row"><button class="btn ghost" id="plus">+15 s</button><button class="btn primary" id="sk">Weiter</button></div>${ne?`<div class="next"><span class="stg"></span><span><span class="muted small">Als Nächstes</span><br><b class="cond" style="font-size:1.3rem">${esc(ne.n)}</b><br><span class="small">${sub}</span></span></div>`:''}`);
+  const c=h(`<p class="phase">Pause</p><h2>Kurz erholen</h2><div class="stg reststg has-tip" style="margin-top:10px;position:relative"><div class="tipbox" aria-live="polite"><span class="tipk">Tipp</span><p id="tip">${esc(TIPS[(SES.i*3)%TIPS.length])}</p></div></div><div class="timer rest" id="tm">${st.sec}</div><div class="slot">${st.why==='max'?'<p class="slot-t">Längere Pause für Maximalkraft</p>':''}</div><p class="muted" id="lbl" style="text-align:center;margin-top:-4px">${st.why==='max'?'Schwere Sätze brauchen mehr Erholung.':' '}</p><div class="row"><button class="btn ghost" id="plus">+15 s</button><button class="btn primary" id="sk">Weiter</button></div>${ne?`<div class="next"><span class="stg"></span><span><span class="muted small">Als Nächstes</span><br><b class="cond" style="font-size:1.3rem">${esc(ne.n)}</b><br><span class="small">${sub}</span></span></div>`:''}`);
   c.querySelector('.reststg').append(makeStage(EX.idle_rest));
   if(ne)c.querySelector('.next .stg').append(makeStage(ne,{single:true}));
   if(st.fb&&SES.cur[st.fb])c.querySelector('.row').after(fbWidget(st.fb));
   app.append(c);
-  const tm=app.querySelector('#tm');let left=st.sec;
-  const go=s=>countdown(s,x=>{left=x;tm.textContent=x},next);
+  const tm=app.querySelector('#tm'),tip=app.querySelector('#tip');let left=st.sec,ti=(SES.i*3)%TIPS.length,el=0;
+  const go=s=>countdown(s,x=>{if(tip&&x!==left&&++el%15===0){ti=(ti+1)%TIPS.length;tip.style.opacity=0;setTimeout(()=>{tip.textContent=TIPS[ti];tip.style.opacity=1},250)}left=x;tm.textContent=x},next);
   go(st.sec);
   app.querySelector('#plus').onclick=()=>go(left+15);
   app.querySelector('#sk').onclick=next;
@@ -1885,7 +1922,7 @@ function stEnd(){
     const L=SES.bal.links,R=SES.bal.rechts;
     if(L.length||R.length){
       const bl=L.length?Math.max(...L):0,br=R.length?Math.max(...R):0,lvl=S.balLv;
-      S.meas.bal.push([k,lvl*BAL_MAX+(bl+br)/2,lvl]);
+      S.meas.bal.push([k,balScore((bl+br)/2,lvl),lvl]);
       if(bl>=BAL_MAX&&br>=BAL_MAX&&lvl<2){S.balLv=lvl+1;SES.msgs.push('Gleichgewicht: beide Seiten 45 s. Nächstes Mal: '+EX[BAL[lvl+1]].n)}
       else if(bl<8&&br<8&&lvl>0){S.balLv=lvl-1;SES.msgs.push('Gleichgewicht: nächstes Mal wieder '+EX[BAL[lvl-1]].n)}
     }

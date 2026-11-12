@@ -1,5 +1,5 @@
 // YOURGYM Service Worker
-const VERSION = 'yg-1.3.1';
+const VERSION = 'yg-1.7.0';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192-v2.png', 'icons/icon-512-v2.png', 'icons/icon-maskable-512-v2.png', 'icons/apple-touch-icon-v2.png', 'icons/favicon-64-v2.png'];
 
 self.addEventListener('install', e => {
